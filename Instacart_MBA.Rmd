@@ -1,0 +1,160 @@
+---
+title: "CSML1000 Winter 2020, Group 8, Assignment2: Instacart Market Basket Analysis"
+author: "Nikola Stevanovic, Steven Wang, Tarun Bagga, Paul Doucet, Jerry Khidaroo, "
+date: "2/22/2020"
+output: 
+  html_document:
+  toc: TRUE
+  toc_depth: 2
+runtime: shiny
+---
+
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Libraries
+
+```{r, message = FALSE}
+# Load packages
+library('ggplot2') # visualization
+library('ggthemes') # visualization
+library('scales') # visualization
+library('dplyr') # data manipulation
+library('arules')
+library('shiny')
+library('shinythemes')
+library('data.table')
+library('ROCR')
+library('caTools')
+```
+
+## 1. Business Understanding
+
+- Objective: The objective of this project is to predict which items a customer is going to purchase based on purchasing trends observed in the dataset.
+
+- Project Plan:
+  
+  - Business Success Criteria: A successful project outcome would be achieved if a model is created that can predict the next items purchased with a high degree of accuracy.
+
+
+
+## 2. Data Understanding
+
+## 2.2 Initial Data Collection Report:
+  - There are seven files provided as part of the dataset for this unsupervised learning example:
+    1. aisles.csv: 
+    2. departmenst.csv:
+    3. order_products__prior.csv:
+    4. order_products__traing.csv:
+    5. orders.csv
+    6. products.csv
+    7. sample_submission.csv
+
+In the following sections (2.2.1 thru 2.2.7), the files will be reviewed.  A determination will be made as to the data's importance in our study.
+
+### 2.2.1 aisles.csv: 
+The following code will load in the "aisles.csv" file and make some initial observations.
+```{r message=FALSE}
+# Concatenate data file subdir and name.
+aisles_file <- paste("./Dataset/aisles.csv",sep="")
+# Load full data
+aisles = read.csv(aisles_file)
+# check data
+str(aisles)
+summary(aisles)
+```
+The file contains information on 134 observations grouped in two columns.
+The two features are:
+1. aisle_id: integer identifying the aisle
+2. aisle: name identifying the aisle
+Because we are concerned with the orders and identifying the products which will be purchased, this file can be ommited from our final dataset.  
+The location within the store, or aisle identification would be useful if we were trying to map out the store location or identify quicker routes for the shoppers that pickup the items ordered from the website.
+  
+
+### 2.2.2 departments.csv:
+The following code will load in the "departments.csv" file and make some initial observations.
+```{r, message = FALSE}
+# Concatenate data file subdir and name.
+departments_file <- paste("./Dataset/departments.csv",sep="")
+# Load full data
+departments = read.csv(departments_file)
+# check data
+str(departments)
+summary(departments)
+```
+The file contains information on 21 observations grouped in two columns.
+  - The two features are:
+    1. department_id: integer identifying the department
+    2. department: name identifying the department
+Because we are concerned with the orders and identifying the products which will be purchased, this file can be ommited from our final dataset.  
+The department information, could be used in determining number of employees or area to be used in the store based on number of products and frequency of purchases.
+
+### 2.2.3 order products prior:
+The following code will load in the "order_products__prior.csv" file and make some initial observations.  An initial look at the file size indicates that only a portion of the file should be loaded in, so the 
+"read.table" function will be used.  This will require resetting the .
+```{r, message = FALSE}
+# Concatenate data file subdir and name.
+order_products__prior_file <- paste("./Dataset/order_products__prior.csv",sep="")
+# Load full data
+order_products__prior <- read.table(order_products__prior_file, header = TRUE, skip = 10, sep=",", nrows = 500000)
+# check data
+str(order_products__prior)
+summary(order_products__prior)
+```
+
+### 2.2.4 "order products train.csv" :
+This is the line of code that review.
+```{r, message = FALSE}
+# Concatenate data file subdir and name.
+order_products__train_file <- paste("./Dataset/order_products__train.csv",sep="")
+# Load full data
+order_products__train = read.table(order_products__train_file, header = TRUE, skip = 10, sep=",", nrows = 500000)
+# check data
+str(order_products__train)
+summary(order_products__train)
+```
+
+### 2.2.5 orders.csv
+```{r, message = FALSE}
+# Concatenate data file subdir and name.
+orders_file <- paste("./Dataset/orders.csv",sep="")
+# Load full data
+orders = read.table(orders_file, header = TRUE, skip = 10, sep=",", nrows = 500000)
+# check data
+str(orders)
+summary(orders)
+```
+
+### 2.2.6 products.csv
+```{r, message = FALSE}
+# Concatenate data file subdir and name.
+products_file <- paste("./Dataset/products.csv",sep="")
+# Load full data
+products = read.csv(products_file)
+# check data
+str(products)
+summary(products)
+```
+
+### 2.2.7 sample_submission.csv
+```{r, message = FALSE}
+# Concatenate data file subdir and name.
+sample_submission_file <- paste("./Dataset/sample_submission.csv",sep="")
+# Load full data
+sample_submission = read.csv(sample_submission_file)
+# check data
+str(sample_submission)
+summary(sample_submission)
+```
+
+
+***
+## 3. Data Preparation
+***
+## 4. Modeling
+***
+## 5. Evaluation
+***
+## 6. Deployment
