@@ -92,12 +92,27 @@ library('arules')
 # full_file_name <- paste("./input/market_basket_data.csv",sep="")
 # aisles = read.csv("./input/aisles.csv")
 # departments = read.csv("./input/departments.csv")
-# order_products_train = read.csv("./input/order_products__train.csv")
+order_products_train = read.csv("./input/order_products__train.csv")
 # order_products__prior = read.csv("./input/order_products__prior.csv")
-# orders_train = read.csv("./input/orders_train.csv")
-# products = read.csv("./input/products.csv")
+orders_train = read.csv("./input/orders_train.csv")
+products = read.csv("./input/products.csv")
 # sample_submission = read.csv("./input/sample_submission.csv")
 ```
+
+```{r, message = FALSE}
+# tmp <- order_products_train %>% 
+#   left_join(products,by="product_id") %>% 
+#   select(product_name, order_id, product_id, add_to_cart_order, reordered)  %>% 
+  
+#tmp <- merge(order_products_train, products, by.x="product_id", by.y="product_id")
+tmp <- merge(order_products_train, orders_train, by.x="order_id", by.y="order_id")
+
+#kable(tmp)
+head(tmp, 12)
+write.csv(tmp, "./input/orders_products_train_merged.csv", row.names = F)
+#kable(head(tmp, 12))
+```
+
 
 ```{r, message = FALSE}
 # check data
