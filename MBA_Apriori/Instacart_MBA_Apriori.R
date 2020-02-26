@@ -74,18 +74,34 @@ summary(tr)
 
 itemFrequencyPlot(tr, topN=20, type='absolute')
 
+# Modeling
+
+###################################################################
 # Training Apriori on the dataset
-rules <- apriori(tr, parameter = list(supp=0.001, conf=0.4))
-rules <- sort(rules, by='count', decreasing = TRUE)
-summary(rules)
+apriori_rules <- apriori(tr, parameter = list(supp=0.001, conf=0.4))
+apriori_rules <- sort(apriori_rules, by='count', decreasing = TRUE)
+summary(apriori_rules)
 
-inspect(rules[1:10])
+inspect(apriori_rules[1:10])
+apriori_topRules <- apriori_rules[1:10]
 
-topRules <- rules[1:10]
 # Visualising the results of the Apriori Analysis
-plot(topRules)
-plot(topRules, method="graph")
-plot(topRules, method = "grouped")
-plot(topRules, method = "two-key plot")
-plot(topRules, method = "scatterplot")
-plot(topRules, method = "paracoord")
+plot(apriori_topRules, method="graph")
+plot(apriori_topRules, method = "grouped")
+plot(apriori_topRules, method = "two-key plot")
+plot(apriori_topRules, method = "scatterplot")
+plot(apriori_topRules, method = "paracoord")
+
+###################################################################
+# Training Eclat on the dataset
+eclat_rules = eclat(tr, parameter = list(support = 0.001, minlen = 2))
+eclat_rules <- sort(eclat_rules, by='count', decreasing = TRUE)
+summary(eclat_rules)
+
+inspect(sort(eclat_rules, by = 'count')[1:10])
+eclat_topRules <- eclat_rules[1:10]
+
+# Visualising the results of the Eclat Analysis
+plot(eclat_topRules, method="graph")
+plot(eclat_topRules, method = "scatterplot")
+plot(eclat_topRules, method = "paracoord")
