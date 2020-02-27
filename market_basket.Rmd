@@ -17,10 +17,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-<!-- ```{r} -->
-<!-- par(mar=c(5,5,0,0)) #it's important to have that in a separate chunk -->
-<!-- ```  -->
-
 ## Load Libraries
 
 ```{r, message = FALSE}
@@ -76,111 +72,132 @@ library(plyr)
   - Will socially sensitive features like gender or ethnic background influence outputs? No demographic data is present.
   - Are seemingly harmless features like location hiding proxies for socially sensitive features? No demographic data is present. 
 
-#### Get Data Files
+#### 2.1 Get Data Files
 
 - The Dataset used is obtained from: https://www.kaggle.com/c/instacart-market-basket-analysis
 
-#### Load and check data
+#### 2.2 Initial Data Collection Report:
 
-#### Run once to create order_products_sample_combined.csv
+  - There are seven files provided as part of the dataset for this unsupervised learning example:
+    1. aisles.csv: 
+    2. departmenst.csv:
+    3. order_products__prior.csv:
+    4. order_products__traing.csv:
+    5. orders.csv
+    6. products.csv
+    7. sample_submission.csv (This file will not be used in the analysis since it is only relevant for submission to the kaggle competition where the data was sourced.)
 
-<!-- ```{r, message = FALSE} -->
-<!-- orders = read.csv("./input/orders.csv") -->
-<!-- orders_train <- subset(orders, eval_set=='train') -->
-<!-- orders_prior <- subset(orders, eval_set=='prior') -->
-<!-- ``` -->
-
-<!-- #### Load data files -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- # full_file_name <- paste("./input/market_basket_data.csv",sep="") -->
-<!-- aisles = read.csv("./input/aisles.csv") -->
-<!-- departments = read.csv("./input/departments.csv") -->
-<!-- products = read.csv("./input/products.csv") -->
-<!-- order_products_prior = read.csv("./input/order_products__prior.csv") -->
-<!-- order_products_train = read.csv("./input/order_products__train.csv") -->
-<!-- ``` -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- # check data -->
-<!-- # kable(aisles) -->
-<!-- # kable(departments) -->
-<!-- # kable(head(products)) -->
-<!-- ``` -->
-
-<!-- #### Get a sample of 10000 'most recent' orders -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- # Set seed for reproducibility -->
-<!-- set.seed(1234) -->
-<!-- orders_train_sample = orders_train[sample(nrow(orders_train), 10000), ] -->
-<!-- #write.csv(orders_sample, "./input/orders_train_sample.csv", row.names = F) -->
-<!-- ``` -->
-
-<!-- #### Get a subset of prior records for user_ids in orders_sample -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- # Merge products columns into order_products_prior -->
-<!-- tmp <- merge(order_products_prior, products, by.x="product_id", by.y="product_id") -->
-<!-- #tmp <- subset(tmp, select = -c(product_name)) -->
-<!-- kable(head(tmp, 12)) -->
-
-<!-- # Merge Orders columns into order_products_prior -->
-<!-- orders_products_prior_merged <- merge(tmp, orders_prior, by.x="order_id", by.y="order_id") -->
-<!-- kable(head(orders_products_prior_merged, 12)) -->
-<!-- #write.csv(tmp, "./input/orders_products_prior_merged.csv", row.names = F) -->
-<!-- ``` -->
-
-<!-- #### Filter order_product_prior based on user_ids in orders_train_sample -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- order_products_prior_sample = subset(orders_products_prior_merged, user_id %in% orders_train_sample$user_id) -->
-<!-- #write.csv(order_products_prior_sample, "./input/order_products_prior_sample.csv", row.names = F) -->
-<!-- ``` -->
-
-<!-- #### Get a subset of train records for user_ids in orders_sample -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- # Merge products columns into order_products_train -->
-<!-- tmp <- merge(order_products_train, products, by.x="product_id", by.y="product_id") -->
-<!-- #tmp <- subset(tmp, select = -c(product_name)) -->
-<!-- kable(head(tmp, 12)) -->
-
-<!-- # Merge Orders columns into order_products_train -->
-<!-- orders_products_train_merged <- merge(tmp, orders_train, by.x="order_id", by.y="order_id") -->
-<!-- kable(head(orders_products_train_merged, 12)) -->
-<!-- #write.csv(tmp, "./input/orders_products_prior_merged.csv", row.names = F) -->
-<!-- ``` -->
-
-<!-- #### Filter order_product_train based on user_ids in orders_sample -->
-
-<!-- ```{r, message = FALSE} -->
-<!-- order_products_train_sample = subset(orders_products_train_merged, user_id %in% orders_train_sample$user_id) -->
-<!-- #write.csv(order_products_train_sample, "./input/order_products_train_sample.csv", row.names = F) -->
-<!-- ``` -->
-
-<!-- #### Join order_products_prior_sample and order_products_train_sample into a single dataset -->
-<!-- ```{r, message = FALSE} -->
-<!-- order_products_sample_combined <- rbind(order_products_prior_sample, order_products_train_sample) -->
-<!-- kable(head(order_products_sample_combined, 12)) -->
-<!-- mydata <- subset(order_products_sample_combined, select = c(user_id, order_id, product_name)) -->
-<!-- kable(head(mydata, 12)) -->
-
-<!-- # # Convert eval_set column to number -->
-<!-- # eval_set_no <- ifelse(order_products_sample_combined$eval_set=="train", 1, 0) -->
-<!-- # order_products_sample_combined <- subset(order_products_sample_combined, select = -c(eval_set)) -->
-<!-- # order_products_sample_combined <- data.frame(cbind(order_products_sample_combined,eval_set_no)) -->
-<!-- # kable(head(order_products_sample_combined, 12)) -->
-
-<!-- # Save file -->
-<!-- write.csv(order_products_sample_combined, "./input/order_products_sample_combined.csv", row.names = F) -->
-<!-- write.csv(mydata, "./input/mydata.csv", row.names = F) -->
-<!-- ``` -->
+#### 2.3 Load and check data
 
 ```{r, message = FALSE}
-order_products_sample_combined <- read.csv("./input/order_products_sample_combined.csv")
-mydata <- read.csv("./input/mydata.csv")
+orders = read.csv("./input/orders.csv")
+#aisles = read.csv("./input/aisles.csv") # Not Used
+#departments = read.csv("./input/departments.csv") # Not Used
+products = read.csv("./input/products.csv")
+order_products_prior = read.csv("./input/order_products__prior.csv")
+order_products_train = read.csv("./input/order_products__train.csv")
 ```
+
+```{r, message = FALSE}
+# check data
+# kable(aisles)
+# kable(departments)
+kable(head(products))
+kable(head(orders))
+kable(head(order_products_prior))
+kable(head(order_products_train))
+```
+
+## 3. Data Preparation
+
+#### 3.1 Data Modification
+
+#### 3.1.1 Get a sample of 10000 'most recent' orders
+
+```{r, message = FALSE}
+# Set seed for reproducibility
+set.seed(1234)
+orders_train <- subset(orders, eval_set=='train')
+orders_train_sample = orders_train[sample(nrow(orders_train), 10000), ]
+#write.csv(orders_sample, "./input/orders_train_sample.csv", row.names = F)
+```
+
+#### 3.1.2 merge order_products_prior with products and orders tables
+
+```{r, message = FALSE}
+# Merge products columns into order_products_prior
+tmp <- merge(order_products_prior, products, by.x="product_id", by.y="product_id")
+
+# Merge Orders columns into order_products_prior
+orders_prior <- subset(orders, eval_set=='prior')
+orders_products_prior_merged <- merge(tmp, orders_prior, by.x="order_id", by.y="order_id")
+```
+
+#### 3.1.3 Filter orders_products_prior_merged based on user_ids in orders_train_sample
+
+```{r, message = FALSE}
+order_products_prior_sample = subset(orders_products_prior_merged, user_id %in% orders_train_sample$user_id)
+```
+
+#### 3.1.4 merge order_products_train with products and orders tables
+
+```{r, message = FALSE}
+# Merge products columns into order_products_train
+tmp <- merge(order_products_train, products, by.x="product_id", by.y="product_id")
+
+# Merge Orders columns into order_products_train
+orders_products_train_merged <- merge(tmp, orders_train, by.x="order_id", by.y="order_id")
+```
+
+#### 3.1.5 Filter order_product_train based on user_ids in orders_sample
+
+```{r, message = FALSE}
+order_products_train_sample = subset(orders_products_train_merged, user_id %in% orders_train_sample$user_id)
+```
+
+#### 3.1.6 Join order_products_prior_sample and order_products_train_sample into a single dataset
+```{r, message = FALSE}
+order_products_sample_combined <- rbind(order_products_prior_sample, order_products_train_sample)
+
+# Lets look at the merged sample dataset we will proceed with in our analysis
+kable(head(order_products_sample_combined, 12))
+
+# Now lets select the 3 columns we need to create the transactions dataset and inspect
+mydata <- subset(order_products_sample_combined, select = c(user_id, order_id, product_name))
+kable(head(mydata, 12))
+```
+
+#### 3.1.7 These 2 files will now be save to disk for future re-loading during project development
+```{r, message = FALSE}
+# Save file
+write.csv(order_products_sample_combined, "./input/order_products_sample_combined.csv", row.names = F)
+write.csv(mydata, "./input/mydata.csv", row.names = F)
+```
+
+#### Clear up some memory
+
+```{r, message = FALSE}
+rm(orders)
+rm(order_products_prior)
+rm(order_products_train)
+rm(orders_products_train_merged)
+rm(orders_train)
+rm(orders_train_sample)
+rm(order_products_prior_sample)
+rm(order_products_train_sample)
+rm(orders_products_prior_merged)
+rm(orders_prior)
+gc()
+```
+
+#### Load the saved files
+
+```{r, message = FALSE}
+#order_products_sample_combined <- read.csv("./input/order_products_sample_combined.csv")
+#mydata <- read.csv("./input/mydata.csv")
+```
+
+## 2.4 Back to some more detailed examination of the data now that we have prepared what we are going ahead with
 
 #### Take a look at data distribution by Dept. id. 
 
@@ -222,33 +239,7 @@ barplot(a,main="Using BarPlot to display Hour of Day Comparision",
         )
 ```
 
-## 3. Data Preparation
-
-#### a) Data Modification
-
-#### 
-
 ```{r, message = FALSE}
-
-```
-
-#### Create Transaction Table 
-
-```{r, message = FALSE}
-# Create Transaction Table
-retail <- mydata[complete.cases(mydata),]
-glimpse(retail)
-# str(retail)
-# retail$Time <- as.factor(retail$order_hour_of_day)
-# a <- hms(as.character(retail$order_hour_of_day))
-# retail$Time = hour(a)
-# retail %>%
-#   ggplot(aes(x=Time)) +
-#   geom_histogram(stat="count",fill="indianred")
-# 
-# 
-# detach("package:plyr", unload=TRUE)
-# 
 # tmp <- retail %>%
 #   group_by(product_id, product_name) %>%
 #   summarize(count = n()) %>%
@@ -259,24 +250,29 @@ glimpse(retail)
 #   ggplot(aes(x=reorder(product_name,count), y=count))+
 #   geom_bar(stat="identity",fill="indian red")+
 #   coord_flip()
+```
 
-retail_sorted <- retail[order(retail$user_id),]
+#### 3.2 Feature Engineering
+
+#### 3.2.1 Create Transaction Table 
+
+```{r, message = FALSE}
+# Create Transaction Table
+detach("package:plyr", unload=TRUE)
+
+retail_sorted <- mydata[complete.cases(mydata),]
+retail_sorted <- retail_sorted[order(retail_sorted$user_id),]
 library(plyr)
-itemList <- ddply(retail,c("user_id","order_id"),
+itemList <- ddply(retail_sorted,c("user_id","order_id"),
                   function(df1)paste(df1$product_name,
                                      collapse = ","))
-
 
 # Remove user and order id's from the list
 itemList$user_id <- NULL
 itemList$order_id <- NULL
 colnames(itemList) <- c("Items")
-write.csv(itemList,"InstaCart_MBA.csv", quote = FALSE, row.names = TRUE)
+write.csv(itemList,"./input/InstaCart_MBA.csv", quote = FALSE, row.names = TRUE)
 ```
-
-#### b) Feature Engineering
-
-- 
 
 ## 4. Data Modeling
 
@@ -285,11 +281,11 @@ write.csv(itemList,"InstaCart_MBA.csv", quote = FALSE, row.names = TRUE)
   - Should you be optimizing for a different outcome than accuracy to make your outcomes fairer? Since there is no demographic data, fairness would be hard to determine.
   - Is it possible that a malicious actor has compromised training data and created misleading results? No. The data is from a reputable source.
 
-## 4. A) Data Modeling - 
+## 4. A) Data Modeling - Apriori
 
 ```{r, message = FALSE}
 suppressWarnings(
-tr <- read.transactions('InstaCart_MBA.csv', format = 'basket', sep=',')
+tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
 )
 ```
 
@@ -306,11 +302,11 @@ inspect(rules)#[1:10])
 ```
 
 
-## 5. A) Data Evaluation 
+## 5. A) Data Evaluation - Apriori
 
 #### Test the Model
 
-```{r, message = FALSE}
+```{r, message = FALSE, fig.align='left'}
 topRules <- rules[1:20]
 # Visualising the results
 #plot(topRules)
@@ -320,6 +316,7 @@ plot(topRules, method = "two-key plot")
 plot(topRules, method = "scatterplot")
 plot(topRules, method = "paracoord")
 # plot(topRules, measure=c("support","lift"),shading="confidence",interactive=T)
+#interestMeasure(rules.pruned, c("support", "chiSquare", "confidence", "conviction", "cosine", "coverage", "leverage", "lift", "oddsRatio"), titanic.raw)
 ```
 
 #### Perform a test prediction
@@ -334,20 +331,56 @@ result = inspect(head(rules_conf))
 result$rhs
 ```
 
+## 4. B) Data Modeling - eclat
+
+```{r, message = FALSE}
+# Training Eclat on the dataset
+eclat_rules = eclat(tr, parameter = list(support = 0.001, minlen = 2))
+eclat_rules <- sort(eclat_rules, by='count', decreasing = TRUE)
+summary(eclat_rules)
+
+inspect(sort(eclat_rules, by = 'count')[1:10])
+eclat_topRules <- eclat_rules[1:10]
+```
+
+## 4. B) Data Evaluation - eclat
+
+```{r, message = FALSE}
+# Visualising the results of the Eclat Analysis
+plot(eclat_topRules, method="graph")
+plot(eclat_topRules, method = "scatterplot")
+plot(eclat_topRules, method = "paracoord")
+```
+
+#### Perform a test prediction
+
+```{r, message = FALSE}
+grocery_item = "Garlic"
+eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2), 
+                 control = list (verbose=F))
+
+## Create rules from the itemsets
+rules <- ruleInduction(eclat_itemsets, tr, confidence = .9)
+rules
+
+rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+result = inspect(head(rules_conf))
+result$rhs
+
+## Create rules from the itemsets
+#rules <- ruleInduction(itemsets, Adult, confidence = .9)
+#rules
+```
+
 ## 6. Final Model Analysis and Selection
 
 #### Cost Analysis
-
-
-```{r, message = FALSE}
-
-```
 
 #### Model Comparison
 
 - The following Machine Learning Algorithms were used in this analysis:
   - Apriori
-
+  - Eclat
 
 ```{r, message = FALSE}
 
@@ -362,16 +395,16 @@ result$rhs
 #### Summary Explanation
 
 - Limitations of our analysis: 
-  - 
-  - 
+  - Due to processing and resource limitations we used a random sample of aproximately 10% of the original dataset
+  - The analysis is based on data provided by InstaCart and may inherit any biases that exists in their customer base relative to the general population.
   
-- Further steps we could take: 
-  - 
+- Further steps: 
+  - The analysis can be expanded to include all of the original data as well as any other similar sources that may be available.
   - 
   
 - Explanation of Model:
-  - 
-  - The Factors that contributed to malignant vs benign tumor identification were the following columns: 
+  - The model 
+  - The following Factors contributed to the success of the model in predicting user ordering behaviour: 
 
 - Ethical Framework Questions: 
   - Can a malicious actor infer information about individuals from your system? No. There is no PII present.
