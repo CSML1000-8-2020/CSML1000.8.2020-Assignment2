@@ -9,12 +9,20 @@ date: "2/15/2020"
 output:
   pdf_document:
     toc: TRUE
-    toc_depth: 2
+    toc_depth: 3
     fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{css, echo=FALSE}
+.ethical-text {
+  background-color: lightblue;
+  border: 3px solid blue;
+  font-weight: italic;
+}
 ```
 
 ## Load Libraries
@@ -50,10 +58,10 @@ library(plyr)
 - Project Plan: 
   - Load and get an understanding of the dataset, its target variable and its features.
   - Make any modifications to the dataset needed to enable learning algorithms to be run on the data.
-  - Identify the features of the dataset that are important in predicting the target variable.
-  - Build and evaluate 3 to 4 Models from the dataset by appling various machine learning algoritms as appropiate and testing them.
+  - Identify the features of the dataset that are important in predicting the output recomendations.
+  - Build and evaluate 2 Models by appling unsupervised machine learning algoritms to the dataset  as appropiate and testing them.
   - Identify the best model to use for the project.
-  - Build a shiny app that deploys the selected model with a user interface for end users to imput measurement values from a study and obtain a pridiction result.
+  - Build a shiny app that deploys the selected model with a user interface that allows end users to add products to a basket and get a list of recomended products.
   - Identify any ethical considerations that should be addressed at each stage of the process.
 
 - Business Success Criteria: 
@@ -67,10 +75,12 @@ library(plyr)
 
 ## 2. Data Understanding
 
-- Ethical Framework Questions: 
-  - Have you de-identified your data and taken measures to reduce the probability of reidentification? The data is de-identified.
-  - Will socially sensitive features like gender or ethnic background influence outputs? No demographic data is present.
-  - Are seemingly harmless features like location hiding proxies for socially sensitive features? No demographic data is present. 
+```{r class.source="ethical-text"}
+# - Ethical Framework Questions: 
+#  - Have you de-identified your data and taken measures to reduce the probability of reidentification? The data is de-identified.
+#  - Will socially sensitive features like gender or ethnic background influence outputs? No demographic data is present.
+#  - Are seemingly harmless features like location hiding proxies for socially sensitive features? No demographic data is present. 
+```
 
 #### 2.1 Get Data Files
 
@@ -91,8 +101,8 @@ library(plyr)
 
 ```{r, message = FALSE}
 orders = read.csv("./input/orders.csv")
-#aisles = read.csv("./input/aisles.csv") # Not Used
-#departments = read.csv("./input/departments.csv") # Not Used
+aisles = read.csv("./input/aisles.csv")
+departments = read.csv("./input/departments.csv")
 products = read.csv("./input/products.csv")
 order_products_prior = read.csv("./input/order_products__prior.csv")
 order_products_train = read.csv("./input/order_products__train.csv")
@@ -100,8 +110,8 @@ order_products_train = read.csv("./input/order_products__train.csv")
 
 ```{r, message = FALSE}
 # check data
-# kable(aisles)
-# kable(departments)
+kable(head(aisles))
+kable(departments)
 kable(head(products))
 kable(head(orders))
 kable(head(order_products_prior))
@@ -110,9 +120,13 @@ kable(head(order_products_train))
 
 ## 3. Data Preparation
 
+###### We also know from the data file descriptions from the source website that order_products_train has the most recent procuct orders by the user and order_products_prior contains all of the historical product orders.
+
 #### 3.1 Data Modification
 
-#### 3.1.1 Get a sample of 10000 'most recent' orders
+###### Due to data storage and processing constraints this analysis will use a random sample of the dataset available rather than all records.
+
+###### Get a sample of 10000 'most recent' orders
 
 ```{r, message = FALSE}
 # Set seed for reproducibility
@@ -122,7 +136,7 @@ orders_train_sample = orders_train[sample(nrow(orders_train), 10000), ]
 #write.csv(orders_sample, "./input/orders_train_sample.csv", row.names = F)
 ```
 
-#### 3.1.2 merge order_products_prior with products and orders tables
+###### merge order_products_prior with products and orders tables
 
 ```{r, message = FALSE}
 # Merge products columns into order_products_prior
@@ -133,13 +147,13 @@ orders_prior <- subset(orders, eval_set=='prior')
 orders_products_prior_merged <- merge(tmp, orders_prior, by.x="order_id", by.y="order_id")
 ```
 
-#### 3.1.3 Filter orders_products_prior_merged based on user_ids in orders_train_sample
+###### Filter orders_products_prior_merged based on user_ids in orders_train_sample
 
 ```{r, message = FALSE}
 order_products_prior_sample = subset(orders_products_prior_merged, user_id %in% orders_train_sample$user_id)
 ```
 
-#### 3.1.4 merge order_products_train with products and orders tables
+###### merge order_products_train with products and orders tables
 
 ```{r, message = FALSE}
 # Merge products columns into order_products_train
@@ -149,32 +163,70 @@ tmp <- merge(order_products_train, products, by.x="product_id", by.y="product_id
 orders_products_train_merged <- merge(tmp, orders_train, by.x="order_id", by.y="order_id")
 ```
 
-#### 3.1.5 Filter order_product_train based on user_ids in orders_sample
+###### Filter order_product_train based on user_ids in orders_sample
 
 ```{r, message = FALSE}
 order_products_train_sample = subset(orders_products_train_merged, user_id %in% orders_train_sample$user_id)
 ```
 
-#### 3.1.6 Join order_products_prior_sample and order_products_train_sample into a single dataset
+###### Since we will be performing an unsupervised machine learning analysis on the dataset, records from order_products_prior_sample and order_products_train_sample can be combined.
+
+###### Join order_products_prior_sample and order_products_train_sample into a single dataset
+
+
 ```{r, message = FALSE}
 order_products_sample_combined <- rbind(order_products_prior_sample, order_products_train_sample)
 
 # Lets look at the merged sample dataset we will proceed with in our analysis
 kable(head(order_products_sample_combined, 12))
+```
+#### 3.2 Feature Engineering
 
-# Now lets select the 3 columns we need to create the transactions dataset and inspect
+###### - For the Market Basket analysis we will need 3 data columns in order to build a transaction file:
+
+###### - A Customer identity field, an Transaction field, and a Product Name field
+
+###### - From looking at the features we have orders$user_id for Customer identity, orders$order_id for Transaction, and products$product_name for Product Name.
+
+```{r, message = FALSE}
+# Select the 3 columns we need to create the transactions dataset and inspect
 mydata <- subset(order_products_sample_combined, select = c(user_id, order_id, product_name))
 kable(head(mydata, 12))
 ```
 
-#### 3.1.7 These 2 files will now be save to disk for future re-loading during project development
+###### These 2 files will now be saved to disk for future re-loading during project development
+
 ```{r, message = FALSE}
-# Save file
+# Save files
 write.csv(order_products_sample_combined, "./input/order_products_sample_combined.csv", row.names = F)
 write.csv(mydata, "./input/mydata.csv", row.names = F)
 ```
 
-#### Clear up some memory
+###### Create Transaction Table 
+
+```{r, message = FALSE}
+# Create Transaction Table
+detach("package:plyr", unload=TRUE)
+
+retail_sorted <- mydata[complete.cases(mydata),]
+retail_sorted <- retail_sorted[order(retail_sorted$user_id),]
+library(plyr)
+itemList <- ddply(retail_sorted,c("user_id","order_id"),
+                  function(df1)paste(df1$product_name,
+                                     collapse = ","))
+
+# Remove user and order id's from the list
+itemList$user_id <- NULL
+itemList$order_id <- NULL
+colnames(itemList) <- c("Items")
+```
+
+```{r, message = FALSE}
+# Save Transaction File
+write.csv(itemList,"./input/InstaCart_MBA.csv", quote = FALSE, row.names = TRUE)
+```
+
+- Clear up some memory
 
 ```{r, message = FALSE}
 rm(orders)
@@ -187,19 +239,24 @@ rm(order_products_prior_sample)
 rm(order_products_train_sample)
 rm(orders_products_prior_merged)
 rm(orders_prior)
+rm(order_products_sample_combined)
+rm(mydata)
 gc()
 ```
+###### Once the analysis data files are saved the data preparation steps above can be commented out and we can just:
 
-#### Load the saved files
+###### Load the saved files
 
 ```{r, message = FALSE}
-#order_products_sample_combined <- read.csv("./input/order_products_sample_combined.csv")
-#mydata <- read.csv("./input/mydata.csv")
+order_products_sample_combined <- read.csv("./input/order_products_sample_combined.csv")
+mydata <- read.csv("./input/mydata.csv")
 ```
 
-## 2.4 Back to some more detailed examination of the data now that we have prepared what we are going ahead with
+## 4. Data Understanding (Continued)
 
-#### Take a look at data distribution by Dept. id. 
+###### Back to some more detailed examination of the data now that we have our analysis dataset in place
+
+###### Take a look at data distribution by Dept. id. 
 
 ```{r, message = FALSE, fig.width=8, fig.align='left'}
 a=table(order_products_sample_combined$department_id)
@@ -211,7 +268,7 @@ barplot(a,main="Using BarPlot to display Dept.Id Comparision",
         )
 ```
 
-#### Take a look at data distribution by Day of Week. 
+###### Take a look at data distribution by Day of Week. 
 
 ```{r, message = FALSE, fig.width=8, fig.align='left'}
 density1 <- seq(5,35,length.out=7)
@@ -226,7 +283,7 @@ barplot(a,main="Using BarPlot to display Day of Week Comparision",
         width = wth)
 ```
 
-#### Take a look at data distribution by Hour of Day. 
+###### Take a look at data distribution by Hour of Day. 
 
 ```{r, message = FALSE, fig.width=8, fig.height=5, fig.align='left'}
 a=table(order_products_sample_combined$order_hour_of_day)
@@ -252,42 +309,23 @@ barplot(a,main="Using BarPlot to display Hour of Day Comparision",
 #   coord_flip()
 ```
 
-#### 3.2 Feature Engineering
-
-#### 3.2.1 Create Transaction Table 
-
-```{r, message = FALSE}
-# Create Transaction Table
-detach("package:plyr", unload=TRUE)
-
-retail_sorted <- mydata[complete.cases(mydata),]
-retail_sorted <- retail_sorted[order(retail_sorted$user_id),]
-library(plyr)
-itemList <- ddply(retail_sorted,c("user_id","order_id"),
-                  function(df1)paste(df1$product_name,
-                                     collapse = ","))
-
-# Remove user and order id's from the list
-itemList$user_id <- NULL
-itemList$order_id <- NULL
-colnames(itemList) <- c("Items")
-write.csv(itemList,"./input/InstaCart_MBA.csv", quote = FALSE, row.names = TRUE)
-```
-
-## 4. Data Modeling
+## 5. Data Modeling
 
 - Ethical Framework Questions: 
   - Does your use case require a more interpretable algorithm? Accuracy is more impotant than interpretability for this study.
   - Should you be optimizing for a different outcome than accuracy to make your outcomes fairer? Since there is no demographic data, fairness would be hard to determine.
   - Is it possible that a malicious actor has compromised training data and created misleading results? No. The data is from a reputable source.
 
-## 4. A) Data Modeling - Apriori
+#### 5.1 Data Modeling - Apriori
 
 ```{r, message = FALSE}
+# Load Transaction data
 suppressWarnings(
 tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
 )
 ```
+
+###### 5.1.1 Build Model - Apriori
 
 ```{r, message = FALSE}
 tr
@@ -298,20 +336,24 @@ itemFrequencyPlot(tr, topN=20, type='absolute', col=rainbow(20, start = 0, end =
 rules <- apriori(tr, parameter = list(supp=0.001, conf=0.5))
 rules <- sort(rules, by='confidence', decreasing = TRUE)
 summary(rules)
-inspect(rules)#[1:10])
+inspect(rules[1:20])
 ```
 
+#### 5.2 Data Evaluation - Apriori
 
-## 5. A) Data Evaluation - Apriori
-
-#### Test the Model
+###### 5.2.1 Test the Model
 
 ```{r, message = FALSE, fig.align='left'}
 topRules <- rules[1:20]
 # Visualising the results
-#plot(topRules)
 plot(topRules, method="graph", shading=NA)
+```
+
+```{r, message = FALSE, fig.height=8}
 plot(topRules, method = "grouped")
+```
+
+```{r, message = FALSE}
 plot(topRules, method = "two-key plot")
 plot(topRules, method = "scatterplot")
 plot(topRules, method = "paracoord")
@@ -319,7 +361,7 @@ plot(topRules, method = "paracoord")
 #interestMeasure(rules.pruned, c("support", "chiSquare", "confidence", "conviction", "cosine", "coverage", "leverage", "lift", "oddsRatio"), titanic.raw)
 ```
 
-#### Perform a test prediction
+###### 5.2.2 Perform a test prediction
 
 ```{r, message = FALSE}
 grocery_item = "Garlic"
@@ -331,7 +373,7 @@ result = inspect(head(rules_conf))
 result$rhs
 ```
 
-## 4. B) Data Modeling - eclat
+#### 5.3 Data Modeling - Eclat
 
 ```{r, message = FALSE}
 # Training Eclat on the dataset
@@ -343,16 +385,16 @@ inspect(sort(eclat_rules, by = 'count')[1:10])
 eclat_topRules <- eclat_rules[1:10]
 ```
 
-## 4. B) Data Evaluation - eclat
+#### 5.4 Data Evaluation - Eclat
 
-```{r, message = FALSE}
+```{r, message = FALSE, fig.align='left'}
 # Visualising the results of the Eclat Analysis
 plot(eclat_topRules, method="graph")
 plot(eclat_topRules, method = "scatterplot")
 plot(eclat_topRules, method = "paracoord")
 ```
 
-#### Perform a test prediction
+###### 5.4.1 Perform a test prediction
 
 ```{r, message = FALSE}
 grocery_item = "Garlic"
@@ -366,17 +408,13 @@ rules
 rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
 result = inspect(head(rules_conf))
 result$rhs
-
-## Create rules from the itemsets
-#rules <- ruleInduction(itemsets, Adult, confidence = .9)
-#rules
 ```
 
 ## 6. Final Model Analysis and Selection
 
-#### Cost Analysis
+#### 6.1 Cost Analysis
 
-#### Model Comparison
+#### 6.2 Model Comparison
 
 - The following Machine Learning Algorithms were used in this analysis:
   - Apriori
@@ -386,13 +424,13 @@ result$rhs
 
 ```
 
-#### Selected Model: 
+#### 6.3 Selected Model: 
 
 ## 7. Deployment
 
-#### Shiny App Url: 
+#### 7.1 Shiny App Url: 
 
-#### Summary Explanation
+#### 7.2 Summary Explanation
 
 - Limitations of our analysis: 
   - Due to processing and resource limitations we used a random sample of aproximately 10% of the original dataset
