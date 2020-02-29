@@ -1,0 +1,132 @@
+---
+title: "CSML1000 Winter 2020, Group 8, Assignment2: Market Basket Prediction Model"
+author: "Steven Wang, Tarun Bagga, Paul Doucet, Jerry Khidaroo, Nicola Stevanovic"
+date: "2/30/2020"
+output: 
+  html_document:
+  toc: TRUE
+  toc_depth: 2
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE, include = FALSE}
+# Load Libraries
+library(knitr)
+# library(ggplot2)
+# library(lubridate)
+library(arules)
+library(arulesViz)
+library('dplyr')
+library('data.table')
+library(shinydashboard)
+library(shiny)
+```
+
+```{r, message = FALSE, include = FALSE}
+# Load files needed for selecting products
+aisles = read.csv("./input/aisles.csv")
+departments = read.csv("./input/departments.csv")
+products = read.csv("./input/products.csv")
+products_for_dept <- subset(products, department_id %in% 1)
+head(products)
+head(products_for_dept)
+
+# Load Transaction data
+suppressWarnings(
+    tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
+)
+
+```
+
+```{r, message = FALSE, include = FALSE}
+# Define UI
+ui <- dashboardPage(
+  dashboardHeader(title = "Group 8 Market"),
+  dashboardSidebar(
+    selectInput('aisle_col', 'Aisle', aisles$aisle),
+    selectInput('dept_col', 'Department', departments$department)
+  ),
+  dashboardBody(title = "Group 8 Market",
+    # Boxes need to be put in a row (or column)
+    fluidRow(
+      box(
+        "Dept:",
+        h3(textOutput(outputId = "dept_val")),
+        h3(textOutput(outputId = "aisle_sel")),
+        #h3(textOutput(outputId = "sel_dept_id")),
+        #tableOutput(outputId = "prod_list"),
+        #products_selected <- subset(products, department_id==values_sel$dept_col)
+      ),
+      box(
+        title = "Cart",
+        #DT::dataTableOutput('prod_list'),
+        #str(dataTableOutput(outputId = "prod_list"))
+      )
+    ),
+    fluidRow(
+      box(
+        txt <- textOutput(outputId = "prod_sel"),
+        
+        #df = data.frame(departmet=txt)
+        selectInput('prod_col', 'Products', products_for_dept$product_name),
+        #dept_row = subset(departments, department %in% "frozen"),
+        #dept_row$department_id
+        # departments$department_id[dept_row]
+        #selectInput('prod_col', 'Product Name', subset(products, department_id %in% departments$department_id[dept_row]))
+      ),
+      actionButton("add_to_cart", "Add to Cart") 
+    ),
+    fluidRow(
+      box(
+        h3(textOutput(outputId = "values_sel")),
+      )
+    )
+
+  )
+)
+```
+
+```{r, message = FALSE, include = FALSE}
+# Define server function
+server <- function(input, output, session) {
+
+      selectedData = reactive({
+        #tmp <- dataset[, c(input$aisle_col, input$dept_col, input$prod_col)]
+        dept_row = which(departments$department == input$dept_col)
+        products_for_dept <- subset(products, department_id %in% departments$department_id[dept_row])
+      })
+      
+      output$prod_sel <- renderPrint({
+        input$prod_col
+      })
+      
+      output$aisle_sel <- renderPrint(paste("Aisle:", input$aisle_col, sep=" "))
+      output$dept_val <- renderText(paste("Dept:", input$dept_col, sep=" "))
+      
+      output$prod_list <- renderTable({
+        # dataset[, c(tmp$product_name)]
+        dataset[c(3, 5, 10)]
+      })
+      
+      output$values_sel <- renderText({
+        grocery_item = "Garlic"#input$prod_col
+        rules <- apriori(tr, parameter = list(supp=0.001, conf=0.15),
+                 appearance = list(default="rhs", lhs=grocery_item),
+                 control = list (verbose=F))
+        rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+        #
+        result = inspect(head(rules_conf))
+        result$rhs
+      })
+}
+```
+
+```{r, message = FALSE}
+# Run Shiny App
+shinyApp(ui = ui, server = server)
+```
+

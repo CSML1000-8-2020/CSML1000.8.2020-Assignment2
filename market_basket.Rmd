@@ -75,12 +75,17 @@ library(plyr)
 
 ## 2. Data Understanding
 
-```{r class.source="ethical-text"}
-# - Ethical Framework Questions: 
-#  - Have you de-identified your data and taken measures to reduce the probability of reidentification? The data is de-identified.
-#  - Will socially sensitive features like gender or ethnic background influence outputs? No demographic data is present.
-#  - Are seemingly harmless features like location hiding proxies for socially sensitive features? No demographic data is present. 
-```
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+
+<div class = "blue">
+
+- Ethical Framework Questions: 
+  - Have you de-identified your data and taken measures to reduce the probability of reidentification? The data is de-identified.
+  - Will socially sensitive features like gender or ethnic background influence outputs? No demographic data is present.
+  - Are seemingly harmless features like location hiding proxies for socially sensitive features? No demographic data is present. 
+</div>
 
 #### 2.1 Get Data Files
 
@@ -361,10 +366,15 @@ plot(topRules, method = "paracoord")
 #interestMeasure(rules.pruned, c("support", "chiSquare", "confidence", "conviction", "cosine", "coverage", "leverage", "lift", "oddsRatio"), titanic.raw)
 ```
 
+
+```{r, message = FALSE}
+
+```
+
 ###### 5.2.2 Perform a test prediction
 
 ```{r, message = FALSE}
-grocery_item = "Garlic"
+grocery_item = "Milk"
 rules <- apriori(tr, parameter = list(supp=0.001, conf=0.15), 
                  appearance = list(default="rhs", lhs=grocery_item), 
                  control = list (verbose=F))
@@ -377,35 +387,38 @@ result$rhs
 
 ```{r, message = FALSE}
 # Training Eclat on the dataset
-eclat_rules = eclat(tr, parameter = list(support = 0.001, minlen = 2))
-eclat_rules <- sort(eclat_rules, by='count', decreasing = TRUE)
-summary(eclat_rules)
+eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2))
+eclat_itemsets <- sort(eclat_itemsets, by='count', decreasing = TRUE)
+summary(eclat_itemsets)
 
-inspect(sort(eclat_rules, by = 'count')[1:10])
-eclat_topRules <- eclat_rules[1:10]
+inspect(sort(eclat_itemsets, by = 'count')[1:10])
+eclat_topItemSets <- eclat_itemsets[1:10]
 ```
 
 #### 5.4 Data Evaluation - Eclat
 
 ```{r, message = FALSE, fig.align='left'}
 # Visualising the results of the Eclat Analysis
-plot(eclat_topRules, method="graph")
-plot(eclat_topRules, method = "scatterplot")
-plot(eclat_topRules, method = "paracoord")
+plot(eclat_topItemSets, method="graph")
+plot(eclat_topItemSets, method = "scatterplot")
+plot(eclat_topItemSets, method = "paracoord")
 ```
 
 ###### 5.4.1 Perform a test prediction
 
 ```{r, message = FALSE}
 grocery_item = "Garlic"
-eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2), 
-                 control = list (verbose=F))
+# eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2), 
+#                  control = list (verbose=F))
 
 ## Create rules from the itemsets
-rules <- ruleInduction(eclat_itemsets, tr, confidence = .9)
-rules
+eclat_rules <- ruleInduction(eclat_itemsets, tr, confidence = .9)
+summary(eclat_rules)
+kable(inspect(eclat_rules[1:20]))
 
-rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+result_eclat <- subset(eclat_rules, subset = lhs %in% "Milk")
+
+rules_conf <- sort (result_eclat, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
 result = inspect(head(rules_conf))
 result$rhs
 ```
