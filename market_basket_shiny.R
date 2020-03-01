@@ -16,13 +16,13 @@ products = read.csv("./input/products.csv")
 products_for_dept <- subset(products, department_id %in% 1)
 head(products)
 head(products_for_dept)
-#products_in_cart <- data.frame(product_id=integer(), product_name=character(), aisle_id=integer(), department_id=integer()) 
-products_in_cart <- head(products_for_dept)
+products_in_cart <- data.frame(product_id=integer(), product_name=character(), aisle_id=integer(), department_id=integer()) 
+#products_in_cart <- head(products_for_dept)
 
-# # Load Transaction data
-# suppressWarnings(
-#     tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
-# )
+# Load Transaction data
+suppressWarnings(
+    tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
+)
 
 # Define UI
 ui <- dashboardPage(
@@ -86,54 +86,19 @@ server <- function(input, output, session) {
       })
       
       rx_cart <- reactive({
-        prod_row = which(products_for_dept$product_id == input$prod_col)
-        tmp <- rbind(products_in_cart, prod_row)
+        prod_row = which(products_for_dept$product_name == input$prod_col)
+        tmp <- rbind(products_in_cart, products_for_dept[prod_row,])
       })
-      
-      observe({
-        x <- input$inCheckboxGroup
-        
-        # Can use character(0) to remove all choices
-        if (is.null(x))
-          x <- character(0)
-        
-        # Can also set the label and select items
-        updateSelectInput(session, "inSelect",
-                          label = paste("Select input label", length(x)),
-                          choices = x,
-                          selected = tail(x, 1)
-        )
-      })
-      
-      # # reactive expression
-      # select_reactive <- eventReactive( input$add_to_cart, {
-      #   # prod_row = which(products_for_dept$product_id == input$prod_col)
-      #   # rbind(products_in_cart, prod_row)
-      #   #tmp <- "Just Added: "#str(products_in_cart$product_name[1])
-      # 
-      #   updateSelectInput(session, "cart_col",
-      #                     label = NULL,
-      #                     choices = products_in_cart$product_name,
-      #                     selected = NULL
-      #   )
-      #   input$prod_col
-      #   #paste(tmp, input$prod_col, sep=" ")
-      # })
-      # 
-      # # text output
-      # output$last_added <- renderText({
-      #   select_reactive()
-      # })
       
       output$product_added_to_card <- renderText({
         grocery_item = input$prod_col#"Garlic"
-        # rules <- apriori(tr, parameter = list(supp=0.001, conf=0.15),
-        #          appearance = list(default="rhs", lhs=grocery_item),
-        #          control = list (verbose=F))
-        # rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
-        # #
-        # result = inspect(head(rules_conf))
-        # result$rhs
+        rules <- apriori(tr, parameter = list(supp=0.001, conf=0.15),
+                 appearance = list(default="rhs", lhs=grocery_item),
+                 control = list (verbose=F))
+        rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+        #
+        result = inspect(head(rules_conf))
+        result$rhs
       })
 }
 
