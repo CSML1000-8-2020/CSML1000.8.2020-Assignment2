@@ -338,10 +338,10 @@ summary(tr)
 
 itemFrequencyPlot(tr, topN=20, type='absolute', col=rainbow(20, start = 0, end = 0.6))
 # Training Apriori on the dataset
-rules <- apriori(tr, parameter = list(supp=0.001, conf=0.5))
+rules <- apriori(tr, parameter = list(supp=0.001, conf=0.07))
 rules <- sort(rules, by='confidence', decreasing = TRUE)
 summary(rules)
-inspect(rules[1:20])
+kable(inspect(rules[1:20]))
 ```
 
 #### 5.2 Data Evaluation - Apriori
@@ -362,13 +362,17 @@ plot(topRules, method = "grouped")
 plot(topRules, method = "two-key plot")
 plot(topRules, method = "scatterplot")
 plot(topRules, method = "paracoord")
+
 # plot(topRules, measure=c("support","lift"),shading="confidence",interactive=T)
 #interestMeasure(rules.pruned, c("support", "chiSquare", "confidence", "conviction", "cosine", "coverage", "leverage", "lift", "oddsRatio"), titanic.raw)
 ```
 
+##### Write the rules to a file
 
 ```{r, message = FALSE}
-
+library('pmml')
+write.PMML(rules, file = "./input/rules_apriori.xml")
+unlink("rules_apriori.xml") # tidy up
 ```
 
 ###### 5.2.2 Perform a test prediction
@@ -407,7 +411,7 @@ plot(eclat_topItemSets, method = "paracoord")
 ###### 5.4.1 Perform a test prediction
 
 ```{r, message = FALSE}
-grocery_item = "Garlic"
+grocery_item = "Milk"
 # eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2), 
 #                  control = list (verbose=F))
 
@@ -473,4 +477,9 @@ Jonathan McPherson, 2016, R Notebooks
 https://blog.rstudio.com/2016/10/05/r-notebooks
 
 Adam Kardash, Patricia Kosseim, 2018, Responsible AI in Consumer Enterprise, integrate.ai
+
+Gopi Subramanian, R Data Analysis Projects, 2017, https://subscription.packtpub.com/book/big_data_and_business_intelligence/9781788621878/1/ch01lvl1sec10/association-rule-mining on Feb. 28, 2020
+
+Roberto J. Bayardo Jr, Rakesh Agrawal, Proc. of the Fifth ACM SIGKDD Int’l Conf. on Knowledge Discovery and Data Mining, 145-154, 1999. Mining the Most Interesting Rules, https://www.bayardo.org/ps/kdd99.pdf on Feb. 28, 2020
+
 
