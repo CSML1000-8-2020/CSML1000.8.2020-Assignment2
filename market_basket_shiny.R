@@ -16,8 +16,8 @@ products = read.csv("./input/products.csv")
 products_for_dept <- subset(products, department_id %in% 1)
 head(products)
 head(products_for_dept)
-products_in_cart <- data.frame(product_id=integer(), product_name=character(), aisle_id=integer(), department_id=integer()) 
-#products_in_cart <- head(products_for_dept)
+#products_in_cart <- data.frame(product_id=integer(), product_name=character(), aisle_id=integer(), department_id=integer()) 
+products_in_cart <- head(products_for_dept)
 
 # Load Transaction data
 suppressWarnings(
@@ -65,7 +65,7 @@ server <- function(input, output, session) {
   
       output$dept_val <- renderText({
         sel_dept_row = which(departments$department == input$dept_col)
-        products_for_dept <- subset(products, department_id %in% departments$department_id[sel_dept_row])
+        products_for_dept <<- subset(products, department_id %in% departments$department_id[sel_dept_row])
         updateSelectInput(session, "prod_col",
                           label = NULL,
                           choices = products_for_dept$product_name,
@@ -77,22 +77,26 @@ server <- function(input, output, session) {
       observeEvent(input$add_to_cart, {
         # prod_row = which(products_for_dept$product_name == input$prod_col)
         # products_in_cart <- rbind(products_in_cart, prod_row)
+        prod_row = which(products_for_dept$product_name == input$prod_col)
+        products_in_cart <<- rbind(products_in_cart, products_for_dept[prod_row,])
 
         updateSelectInput(session, "cart_col",
                           label = NULL,
-                          choices = rx_cart()$product_name,
+                          #choices = rx_cart()$product_name,
+                          choices = products_in_cart$product_name,
                           selected = NULL
         )
       })
       
-      rx_cart <- reactive({
-        prod_row = which(products_for_dept$product_name == input$prod_col)
-        tmp <- rbind(products_in_cart, products_for_dept[prod_row,])
-      })
+      # rx_cart <- reactive({
+      #   prod_row = which(products_for_dept$product_name == input$prod_col)
+      #   tmp <- rbind(products_in_cart, products_for_dept[prod_row,])
+      #   products_in_cart <- tmp
+      # })
       
       output$product_added_to_card <- renderText({
         grocery_item = input$prod_col#"Garlic"
-        rules <- apriori(tr, parameter = list(supp=0.001, conf=0.15),
+        rules <- apriori(tr, parameter = list(supp=0.001, conf=0.1),
                  appearance = list(default="rhs", lhs=grocery_item),
                  control = list (verbose=F))
         rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
