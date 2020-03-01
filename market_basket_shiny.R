@@ -54,7 +54,7 @@ ui <- dashboardPage(
     fluidRow(
       box(
         title = "Product Recomendations:", width=12,
-        textOutput(outputId = "product_added_to_card"),
+        tableOutput(outputId = "product_added_to_card"),
       )
     )
 
@@ -104,7 +104,7 @@ server <- function(input, output, session) {
       #   products_in_cart <- tmp
       # })
       
-      output$product_added_to_card <- renderText({
+      output$product_added_to_card <- renderTable({
         grocery_item = input$prod_col#"Garlic"
         rules <- apriori(tr, parameter = list(supp=0.001, conf=0.1),
                  appearance = list(default="rhs", lhs=grocery_item),
@@ -113,7 +113,7 @@ server <- function(input, output, session) {
         #
         result = inspect(head(rules_conf))
         result$rhs
-      })
+      }, rownames=FALSE, colnames=FALSE)
 }
 
 # Run Shiny App
