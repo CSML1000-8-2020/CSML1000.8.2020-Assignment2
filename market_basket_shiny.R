@@ -8,6 +8,8 @@ library('dplyr')
 library('data.table')
 library(shinydashboard)
 library(shiny)
+library('pmml')
+library('XML')
 
 # Load files needed for selecting products
 #aisles = read.csv("./input/aisles.csv")
@@ -20,9 +22,13 @@ head(products_for_dept)
 products_in_cart <- head(products_for_dept)
 
 # Load Transaction data
-suppressWarnings(
-    tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
-)
+# suppressWarnings(
+#     tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
+# )
+
+# Load Rules Data
+# rules <- read.csv("./input/rules_apriori.csv")
+rules <- readRDS("./input/rules_apriori.rds")
 
 # Define UI
 ui <- dashboardPage(
@@ -113,11 +119,13 @@ server <- function(input, output, session) {
       
       output$product_added_to_card <- renderTable({
         grocery_item = input$prod_col#"Garlic"
-        rules <- apriori(tr, parameter = list(supp=0.001, conf=0.1),
-                 appearance = list(default="rhs", lhs=grocery_item),
-                 control = list (verbose=F))
-        rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+        # rules <- apriori(tr, parameter = list(supp=0.001, conf=0.1),
+        #          appearance = list(default="rhs", lhs=grocery_item),
+        #          control = list (verbose=F))
+        # rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
         #
+        rules_subset <- subset(rules, subset = lhs %in% input$prod_col)
+        rules_conf <- sort (rules_subset, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
         result = inspect(head(rules_conf))
         result$rhs
       }, rownames=FALSE, colnames=FALSE)
