@@ -38,7 +38,8 @@ ui <- dashboardPage(
         textOutput(outputId = "dept_val"),
         textOutput(outputId = "last_added"),
       ),
-      actionButton("add_to_cart", "Add to Cart") 
+      actionButton("add_to_cart", "Add to Cart"),
+      actionButton("clear_cart", "Clear Cart") 
     ),
     fluidRow(
       box(
@@ -53,7 +54,7 @@ ui <- dashboardPage(
     fluidRow(
       box(
         title = "Product Recomendations:", width=12,
-        textOutput(outputId = "product_added_to_card"),
+        tableOutput(outputId = "product_added_to_card"),
       )
     )
 
@@ -63,27 +64,43 @@ ui <- dashboardPage(
 # Define server function
 server <- function(input, output, session) {
   
-      output$dept_val <- renderText({
+        session$userData$products_in_cart <- products_in_cart[0,]
+        updateSelectInput(session=session, inputId = "cart_col",
+                          label = NULL,
+                          choices = session$userData$products_in_cart$product_name,
+                          selected = NULL
+        )
+
+        output$dept_val <- renderText({
         sel_dept_row = which(departments$department == input$dept_col)
-        products_for_dept <<- subset(products, department_id %in% departments$department_id[sel_dept_row])
+        session$userData$products_for_dept <<- subset(products, department_id %in% departments$department_id[sel_dept_row])
         updateSelectInput(session, "prod_col",
                           label = NULL,
-                          choices = products_for_dept$product_name,
+                          choices = session$userData$products_for_dept$product_name,
                           selected = NULL
         )
         paste("Dept:", input$dept_col, sep=" ")
         })
+    
+      observeEvent(input$clear_cart, {
+        session$userData$products_in_cart <<- products_in_cart[0,]
+        updateSelectInput(session=session, inputId = "cart_col",
+                          label = NULL,
+                          choices = session$userData$products_in_cart$product_name,
+                          selected = NULL
+         )
+      })
       
       observeEvent(input$add_to_cart, {
         # prod_row = which(products_for_dept$product_name == input$prod_col)
         # products_in_cart <- rbind(products_in_cart, prod_row)
-        prod_row = which(products_for_dept$product_name == input$prod_col)
-        products_in_cart <<- rbind(products_in_cart, products_for_dept[prod_row,])
+        prod_row = which(session$userData$products_for_dept$product_name == input$prod_col)
+        session$userData$products_in_cart <<- rbind(session$userData$products_in_cart, session$userData$products_for_dept[prod_row,])
 
         updateSelectInput(session, "cart_col",
                           label = NULL,
                           #choices = rx_cart()$product_name,
-                          choices = products_in_cart$product_name,
+                          choices = session$userData$products_in_cart$product_name,
                           selected = NULL
         )
       })
@@ -94,7 +111,7 @@ server <- function(input, output, session) {
       #   products_in_cart <- tmp
       # })
       
-      output$product_added_to_card <- renderText({
+      output$product_added_to_card <- renderTable({
         grocery_item = input$prod_col#"Garlic"
         rules <- apriori(tr, parameter = list(supp=0.001, conf=0.1),
                  appearance = list(default="rhs", lhs=grocery_item),
@@ -103,7 +120,7 @@ server <- function(input, output, session) {
         #
         result = inspect(head(rules_conf))
         result$rhs
-      })
+      }, rownames=FALSE, colnames=FALSE)
 }
 
 # Run Shiny App
