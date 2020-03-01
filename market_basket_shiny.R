@@ -38,7 +38,8 @@ ui <- dashboardPage(
         textOutput(outputId = "dept_val"),
         textOutput(outputId = "last_added"),
       ),
-      actionButton("add_to_cart", "Add to Cart") 
+      actionButton("add_to_cart", "Add to Cart"),
+      actionButton("clear_cart", "Clear Cart") 
     ),
     fluidRow(
       box(
@@ -73,6 +74,15 @@ server <- function(input, output, session) {
         )
         paste("Dept:", input$dept_col, sep=" ")
         })
+    
+      observeEvent(input$clear_cart, {
+        products_in_cart <<- products_in_cart[0,]
+        updateSelectInput(session=session, inputId = "cart_col",
+                          label = NULL,
+                          choices = products_in_cart$product_name,
+                          selected = NULL
+         )
+      })
       
       observeEvent(input$add_to_cart, {
         # prod_row = which(products_for_dept$product_name == input$prod_col)
