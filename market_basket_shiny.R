@@ -64,22 +64,29 @@ ui <- dashboardPage(
 # Define server function
 server <- function(input, output, session) {
   
-      output$dept_val <- renderText({
+        session$userData$products_in_cart <- products_in_cart[0,]
+        updateSelectInput(session=session, inputId = "cart_col",
+                          label = NULL,
+                          choices = session$userData$products_in_cart$product_name,
+                          selected = NULL
+        )
+
+        output$dept_val <- renderText({
         sel_dept_row = which(departments$department == input$dept_col)
-        products_for_dept <<- subset(products, department_id %in% departments$department_id[sel_dept_row])
+        session$userData$products_for_dept <<- subset(products, department_id %in% departments$department_id[sel_dept_row])
         updateSelectInput(session, "prod_col",
                           label = NULL,
-                          choices = products_for_dept$product_name,
+                          choices = session$userData$products_for_dept$product_name,
                           selected = NULL
         )
         paste("Dept:", input$dept_col, sep=" ")
         })
     
       observeEvent(input$clear_cart, {
-        products_in_cart <<- products_in_cart[0,]
+        session$userData$products_in_cart <<- products_in_cart[0,]
         updateSelectInput(session=session, inputId = "cart_col",
                           label = NULL,
-                          choices = products_in_cart$product_name,
+                          choices = session$userData$products_in_cart$product_name,
                           selected = NULL
          )
       })
@@ -87,13 +94,13 @@ server <- function(input, output, session) {
       observeEvent(input$add_to_cart, {
         # prod_row = which(products_for_dept$product_name == input$prod_col)
         # products_in_cart <- rbind(products_in_cart, prod_row)
-        prod_row = which(products_for_dept$product_name == input$prod_col)
-        products_in_cart <<- rbind(products_in_cart, products_for_dept[prod_row,])
+        prod_row = which(session$userData$products_for_dept$product_name == input$prod_col)
+        session$userData$products_in_cart <<- rbind(session$userData$products_in_cart, session$userData$products_for_dept[prod_row,])
 
         updateSelectInput(session, "cart_col",
                           label = NULL,
                           #choices = rx_cart()$product_name,
-                          choices = products_in_cart$product_name,
+                          choices = session$userData$products_in_cart$product_name,
                           selected = NULL
         )
       })
