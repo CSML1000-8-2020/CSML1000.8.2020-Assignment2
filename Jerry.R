@@ -79,18 +79,18 @@ server <- function(input, output, session) {
     
     rx_cart <- reactive({
         prod_row <- which(products_for_dept$product_name == input$prod_col)
-        tmp <- rbind(products_in_cart, products_for_dept[prod_row,])
+        products_in_cart <<- rbind(products_in_cart, products_for_dept[prod_row,])
     })
     
     
     observeEvent(input$add_to_cart, {
-        prod_row = which(products_for_dept$product_name == input$prod_col)
-        products_in_cart <- rbind(products_in_cart, products_for_dept[prod_row,])
+        #prod_row = which(products_for_dept$product_name == input$prod_col)
+        #products_in_cart <- rbind(products_in_cart, products_for_dept[prod_row,])
        
         
        updateSelectInput(session=session, inputId = "cart_col",
                           label = NULL,
-                          choices = products_in_cart$product_name,
+                          choices = rx_cart()$product_name,
                           selected = NULL
        )
     })
