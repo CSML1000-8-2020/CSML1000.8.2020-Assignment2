@@ -53,6 +53,10 @@ ui <- dashboardPage(
       box(
         title = "Product Recomendations:", width=12,
         tableOutput(outputId = "product_added_to_cart"),
+        tags$style(type="text/css",
+                  ".shiny-output-error { visibility: hidden; }",
+                  ".shiny-output-error:before { visibility: hidden; }"
+                  )
       )
     )
 
@@ -85,17 +89,18 @@ server <- function(input, output, session) {
         output$product_added_to_cart <- renderTable({
           grocery_item <- input$prod_col
           grocery_item
+          # if (grocery_item part of tr)
           rules <- apriori(tr, parameter = list(supp=0.00001, conf=0.3),
                    appearance = list(default="rhs", lhs=grocery_item),
                    control = list (verbose=F))
-          rules_subset <- subset(rules, subset = lhs %in% grocery_item)#grocery_item)
-          rules_conf <- sort (rules_subset, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+          # rules_subset <- subset(rules, subset = lhs %in% grocery_item)#grocery_item)
+          rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
           # result <- as.data.frame(rules_conf)
           result <- as(rules_conf,"data.frame")
-          
-          if(is.null(result$rules)){
-            result$rules <- "NA"
-          }
+          result <- head(result,4)
+          # if(is.null(result$rules)){
+          #   result$rules <- "NA"
+          # }
           result$rules
           }, rownames=FALSE, colnames=FALSE)
       }
