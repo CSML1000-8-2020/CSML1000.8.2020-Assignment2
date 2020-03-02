@@ -5,4 +5,4 @@ Implements a Market Basket Unsupervised Learning Model
 
 The Following Shiny App Example Showscases a potential use of the Model as a recomendation engine for an Online Store
 
-https://csml1000-group8.shinyapps.io/Assignment2/
+https://csml1000-group8.shinyapps.io/Assignment2_ShinyApp/
