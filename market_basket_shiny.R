@@ -24,27 +24,7 @@ suppressWarnings(
     tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
 )
 
-grocery_item = "Garlic"
-rules <- apriori(tr, parameter = list(supp=0.001, conf=0.1),
-                 appearance = list(default="rhs", lhs=grocery_item),
-                 control = list (verbose=F))
-saveRDS(rules,file="./rules.rds")
-myRules <<- readRDS("./rules.rds")
-#
-# rules_subset <- subset(rules, subset = lhs %in% grocery_item)
-# rules_conf <- sort (rules_subset, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
-# result = inspect(head(rules_conf))
-# result$rhs
-#
-#
-# rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
-# #
-# result = inspect(head(rules_conf))
-# result$rhs
-
-
-
-
+# rules <- readRDS("./input/rules.rds")
 
 # Define UI
 ui <- dashboardPage(
@@ -107,10 +87,14 @@ server <- function(input, output, session) {
       recommend_update <- function()
         {
         output$product_added_to_cart <- renderTable({
-          
-          rules_subset <- subset(rules, subset = lhs %in% as.character(input$dept_col))#grocery_item)
+          grocery_item <- input$prod_col
+          grocery_item
+          rules <- apriori(tr, parameter = list(supp=0.00001, conf=0.3),
+                   appearance = list(default="rhs", lhs=grocery_item),
+                   control = list (verbose=F))
+          rules_subset <- subset(rules, subset = lhs %in% grocery_item)#grocery_item)
           rules_conf <- sort (rules_subset, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
-          result = inspect(head(rules_conf))
+          result = rules_conf
           if(is.null(result$rhs)){
             result$rhs <- "NA"
           }
