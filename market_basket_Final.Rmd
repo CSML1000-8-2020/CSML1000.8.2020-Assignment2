@@ -1,0 +1,551 @@
+---
+title: "CSML1000 Winter 2020, Group 8, Assignment2: Market Basket Prediction Model"
+author: "Steven Wang, Tarun Bagga, Paul Doucet, Jerry Khidaroo, Nikola Stevanovic"
+date: "2/15/2020"
+output:
+   html_document:
+   toc: TRUE
+   toc_depth: 2
+#output:
+#  pdf_document:
+#    toc: TRUE
+#    toc_depth: 3
+#    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{css, echo=FALSE}
+.ethical-text {
+  background-color: lightblue;
+  border: 3px solid blue;
+  font-weight: italic;
+}
+```
+
+## Load Libraries
+
+```{r, message = FALSE}
+# Load packages
+# library('ggplot2') # visualization
+# library('ggthemes') # visualization
+# # library('scales') # visualization
+# library('dplyr') # data manipulation
+# library('caret')
+# library('caret')
+# library('readr')
+# library('data.table')
+# library('knitr')
+# library('purrr') # ANN modeling functionality
+# library('arules')
+
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+library(arules)
+library(arulesViz)
+library(plyr)
+```
+
+## 1. Business Understanding
+
+- Business Problem: The Business problem we are solving is how to increase the number of items ordered by a customer in each order submitted in the online store. To acheive this goal we want to build a machine learning model that predicts the most likely items a customer will add to their basket next based on their current selection and display those items as suggestions for quick access.
+
+- Project Plan: 
+  - Select instacart dataset from kaggle to solve this unsupervised machine learning use case and in which we dont have any label or target provided and we are supose to create our own labels.
+  - Load and get an understanding of the datasets, perform Exploratory Data Analysis on its features.
+  - Transform the dataset as per the need to enable learning algorithms to be run on the data.
+  - Identify the features of the dataset that are important in predicting the output recomendations.
+  - Build and evaluate 2 Models by appling unsupervised machine learning algoritms to the dataset  as appropiate and testing them.
+  - Identify the best model to use for the project.
+  - Build a shiny app that deploys the selected model with a user interface that allows end users to add products to a basket and get a list of recomended products.
+  - Identify any ethical considerations that should be addressed at each stage of the process.
+
+- Business Success Criteria: 
+Success shall be achieved if we can facilitate customers to easily select items for their shopping cart with the help of artifical intelligence by modelling on their previous selections.
+
+- Ethical Framework Questions: 
+  - How could your system negatively impact individuals? This is very important question to ask as we have to look at how our recommendations are not creating biases or undesired negative results for the customers. We could recommend a product to an actor which could be against their religious beliefs, could be illegal or dangerous to consume due to various factors such as dibates, allergens or pregnancy. We need to be cognizant of the fact that our association rules are ethically correct when created, if the customer does not have self control and keeps ordering an item which is not right for them, it potentially can hurt them financially and in other ways.
+  
+  - Who is most vulnerable and why? The most vulnerable would be actors who are not able to comprehend that certain recommendations are not good for them and they go ahead and buy these anyways.
+  
+  - How much error in predictions can your business accept for this use case? Since these recommendations can be dangerous and life threatening in some cases. The error can come from biased outcomes via the association rules which can heavily tilt the recommendation one way or the other.
+  
+  - Will you need to explain which input factors had the greatest influence on outputs? Since this is association rules based use case it is not that imperative to explain input factors affecting model.
+  
+  - Do you need PII or can you provide group-level data? The analysis requires customers personal data however any PII can be anonymised
+
+## 2. Data Understanding
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+
+<div class = "blue">
+
+- Ethical Framework Questions: 
+  - Have you de-identified your data and taken measures to reduce the probability of reidentification? The data is de-identified.
+  - Will socially sensitive features like gender or ethnic background influence outputs? No demographic data is present.
+  - Are seemingly harmless features like location hiding proxies for socially sensitive features? No demographic data is present. 
+</div>
+
+#### 2.1 Get Data Files
+
+- For this assignment we came across classic kaggle problem from instacart for predicting next item in the basket using market basket modelling. We looked at the data. The Dataset used is obtained from: https://www.kaggle.com/c/instacart-market-basket-analysis
+
+#### 2.2 Initial Data Collection Report:
+
+  - There are seven files provided as part of the dataset for this unsupervised learning model:
+    1. aisles.csv: 
+    2. departmenst.csv:
+    3. order_products__prior.csv:
+    4. order_products__traing.csv:
+    5. orders.csv
+    6. products.csv
+    7. sample_submission.csv (This file will not be used in the analysis since it is only relevant for submission to the kaggle competition where the data was sourced.).
+    
+    Each of the datset contains different type of data related to the online grocery mart with PK/FK relationships.
+    
+    Lets exploreand deep dive within the various datasets provided.
+    
+## Products
+    
+  For this section there are 2 CSV files provided, namely order_products_train and order_products_prior. These data inside the files specifies which products were purchased in each order. That is, order_products_prior contains previous order products for all customers and order_products_train contains the latest order products for some customers only.
+    
+Let us look the counts of records inside the files. Using the built-in R functions we can see that there are 1,384,617 products in the order_products_train file and 32,434,489 products in the order_products_prior file.
+Both the CSV files contain 4 features:
+    The ID of the order (order_id)
+    The ID of the product (product_id)
+    The ordering of that product in the order (add_to_cart_order)
+    Whether that product was reordered (reordered).
+    Overall, there are 3,346,083 unique orders for 49,685 unique products.
+    
+## Orders
+    
+Upon perusing the data for Instacart orders. The records inside the orders.csv file present a different tale as we see that there are 3,421,083 orders and 7 feature columns:
+The ID of the order (order_id)
+The ID of the customer (user_id)
+Which evaluation datasets that the order is in — prior, train, or test (eval_set)
+The number of the order (order_number)
+The day of the week when that order occurred (order_dow)
+The hour of the day when that order occurred (order_hour_of_day)
+The number of days since the previous order (days_since_prior_order)
+    
+## Departments and Aisles
+    
+Let’s look at the most important departments, sorted by the number of products. The top 5 departments are Personal Care (6,563), Snacks (6,264), Pantry (5,371), Beverages (4,365), and Frozen (4,007).
+
+Let’s look at the most important aisles over all departments, as being sorted by the number of products. Ignoring the ‘missing’ values, we have the top 5 aisles being Candy Chocolate (1,258), Ice Cream (1,091), Vitamins Supplements (1,038), Yogurt (1,026), and Chips Pretzels (989).
+    
+#### 2.3 Load and check data
+ The links to the two big files are as follows:
+order products_train
+https://drive.google.com/open?id=1FB1ElGO7LKx6Ga5IIP7CDvTo_rYYIYeu
+order products_prior
+https://drive.google.com/open?id=1uS7Kwwrr4AjzKvwbJSARNxWl1Ql7GRiP
+
+```{r, message = FALSE}
+orders = read.csv("./input/orders.csv")
+aisles = read.csv("./input/aisles.csv")
+departments = read.csv("./input/departments.csv")
+products = read.csv("./input/products.csv")
+order_products_prior = read.csv(url("./input/order_products__prior.csv"))
+order_products_train = read.csv(url("./input/order_products__train.csv"))
+```
+Here we can check the Data visually by putting kable function around the head of datasets
+```{r, message = FALSE}
+# check data
+kable(head(aisles))
+kable(departments)
+kable(head(products))
+kable(head(orders))
+kable(head(order_products_prior))
+kable(head(order_products_train))
+```
+## 3 Data Preparation, Cleaning and Manipulation
+
+###### While looking for outliers and nulls we found out thet There were no null or empty values. This was alsoa  consistent discovery for the variables in aisle, departments, Order_product_prior,order_product_train and products datasets. Although we did see that in Orders dataset we encountered some null values in days since prior order column  and only 5% of the values were found to be missing. We have not imputed or rejected these since the count is very low to be a significant issue.
+
+
+###### We also know from the data file descriptions from the source website that order_products_train has the most recent procuct orders by the user and order_products_prior contains all of the historical product orders.
+
+#### 3.1 Data Modification
+
+###### Due to data storage and processing constraints this analysis will use a random sample of the dataset available rather than all records.
+
+###### Get a sample of 10000 'most recent' orders
+
+```{r, message = FALSE}
+# Set seed for reproducibility
+set.seed(1234)
+orders_train <- subset(orders, eval_set=='train')
+orders_train_sample = orders_train[sample(nrow(orders_train), 10000), ]
+#write.csv(orders_sample, "./input/orders_train_sample.csv", row.names = F)
+```
+
+###### merge order_products_prior with products and orders tables
+
+```{r, message = FALSE}
+# Merge products columns into order_products_prior
+tmp <- merge(order_products_prior, products, by.x="product_id", by.y="product_id")
+
+# Merge Orders columns into order_products_prior
+orders_prior <- subset(orders, eval_set=='prior')
+orders_products_prior_merged <- merge(tmp, orders_prior, by.x="order_id", by.y="order_id")
+```
+
+###### Filter orders_products_prior_merged based on user_ids in orders_train_sample
+
+```{r, message = FALSE}
+order_products_prior_sample = subset(orders_products_prior_merged, user_id %in% orders_train_sample$user_id)
+```
+
+###### merge order_products_train with products and orders tables
+
+```{r, message = FALSE}
+# Merge products columns into order_products_train
+tmp <- merge(order_products_train, products, by.x="product_id", by.y="product_id")
+
+# Merge Orders columns into order_products_train
+orders_products_train_merged <- merge(tmp, orders_train, by.x="order_id", by.y="order_id")
+```
+
+###### Filter order_product_train based on user_ids in orders_sample
+
+```{r, message = FALSE}
+order_products_train_sample = subset(orders_products_train_merged, user_id %in% orders_train_sample$user_id)
+```
+
+###### Since we will be performing an unsupervised machine learning analysis on the dataset, records from order_products_prior_sample and order_products_train_sample can be combined.
+
+###### Join order_products_prior_sample and order_products_train_sample into a single dataset
+
+
+```{r, message = FALSE}
+order_products_sample_combined <- rbind(order_products_prior_sample, order_products_train_sample)
+
+# Lets look at the merged sample dataset we will proceed with in our analysis
+kable(head(order_products_sample_combined, 12))
+```
+#### 3.2 Feature Engineering
+
+###### - For the Market Basket analysis we will need 3 data columns in order to build a transaction file:
+
+###### - A Customer identity field, an Transaction field, and a Product Name field
+
+###### - From looking at the features we have orders$user_id for Customer identity, orders$order_id for Transaction, and products$product_name for Product Name.
+
+```{r, message = FALSE}
+# Select the 3 columns we need to create the transactions dataset and inspect
+mydata <- subset(order_products_sample_combined, select = c(user_id, order_id, product_name))
+kable(head(mydata, 12))
+```
+
+###### These 2 files will now be saved to disk for future re-loading during project development
+
+```{r, message = FALSE}
+# Save files
+write.csv(order_products_sample_combined, "./input/order_products_sample_combined.csv", row.names = F)
+write.csv(mydata, "./input/mydata.csv", row.names = F)
+```
+
+###### Create Transaction Table 
+
+```{r, message = FALSE}
+# Create Transaction Table
+detach("package:plyr", unload=TRUE)
+
+retail_sorted <- mydata[complete.cases(mydata),]
+retail_sorted <- retail_sorted[order(retail_sorted$user_id),]
+library(plyr)
+itemList <- ddply(retail_sorted,c("user_id","order_id"),
+                  function(df1)paste(df1$product_name,
+                                     collapse = ","))
+
+# Remove user and order id's from the list
+itemList$user_id <- NULL
+itemList$order_id <- NULL
+colnames(itemList) <- c("Items")
+```
+
+```{r, message = FALSE}
+# Save Transaction File
+write.csv(itemList,"./input/InstaCart_MBA.csv", quote = FALSE, row.names = TRUE)
+```
+
+- Clear up some memory
+
+```{r, message = FALSE}
+rm(orders)
+rm(order_products_prior)
+rm(order_products_train)
+rm(orders_products_train_merged)
+rm(orders_train)
+rm(orders_train_sample)
+rm(order_products_prior_sample)
+rm(order_products_train_sample)
+rm(orders_products_prior_merged)
+rm(orders_prior)
+rm(order_products_sample_combined)
+rm(mydata)
+gc()
+```
+###### Once the analysis data files are saved the data preparation steps above can be commented out and we can just:
+
+###### Load the saved files
+
+```{r, message = FALSE}
+order_products_sample_combined <- read.csv("./input/order_products_sample_combined.csv")
+mydata <- read.csv("./input/mydata.csv")
+```
+
+## 4. Data Understanding (Continued)
+
+###### Back to some more detailed examination of the data now that we have our analysis dataset in place
+
+###### Take a look at data distribution by Dept. id. 
+
+```{r, message = FALSE, fig.width=8, fig.align='left'}
+a=table(order_products_sample_combined$department_id)
+barplot(a,main="Total Product Count for Each Department",
+        ylab="Count",
+        xlab="department_id",
+        col=rainbow(5),
+        #legend=rownames(a)
+        )
+```
+
+###### Take a look at data distribution by Day of Week. 
+
+```{r, message = FALSE, fig.width=8, fig.align='left'}
+density1 <- seq(5,35,length.out=7)
+a=table(order_products_sample_combined$order_dow)
+wth <- c(rep(5, each=7))
+barplot(a,main="Orders count for Days",
+        ylab="Count",
+        xlab="department_id",
+        col=rainbow(2, start = 0.5, end = 0.7),
+        density=density1,
+        #legend=rownames(a),
+        width = wth)
+```
+This plot displays the count of orders per sat of the week
+###### Take a look at data distribution by Hour of Day. 
+
+```{r, message = FALSE, fig.width=8, fig.height=5, fig.align='left'}
+a=table(order_products_sample_combined$order_hour_of_day)
+barplot(a,main="Hour of Day Comparision",
+        ylab="Count",
+        xlab="department_id",
+        col=rainbow(22, start = 0.5, end = 0.7),
+        #legend=rownames(a),
+        #width = rep(2, each=24)
+        )
+```
+
+```{r, message = FALSE}
+# tmp <- retail %>%
+#   group_by(product_id, product_name) %>%
+#   summarize(count = n()) %>%
+#   arrange(desc(count))
+# tmp <- head(tmp, n=10)
+# tmp
+# tmp %>%
+#   ggplot(aes(x=reorder(product_name,count), y=count))+
+#   geom_bar(stat="identity",fill="indian red")+
+#   coord_flip()
+```
+
+## 5. Data Modeling
+
+- Ethical Framework Questions: 
+  - Does your use case require a more interpretable algorithm? Our algorithm uses predictive measures such as lift and confidence to help the users in  gauging the intepretibility of the results and the model. 
+  - Should you be optimizing for a different outcome than accuracy to make your outcomes fairer? Since there is no demographic data, fairness would be hard to determine, the customer data is already masked.
+  - Is it possible that a malicious actor has compromised training data and created misleading results? No. The data is from a reputable source such as Kaggle and it is a well know use case.
+
+#### 5.1 Data Modeling - Apriori
+
+```{r, message = FALSE}
+# Load Transaction data
+suppressWarnings(
+tr <- read.transactions('./input/InstaCart_MBA.csv', format = 'basket', sep=',')
+)
+```
+
+###### 5.1.1 Build Model - Apriori
+
+```{r, message = FALSE}
+tr
+summary(tr)
+
+itemFrequencyPlot(tr, topN=20, type='absolute', col=rainbow(20, start = 0, end = 0.6))
+# Training Apriori on the dataset
+rules <- apriori(tr, parameter = list(supp=0.001, conf=0.5))
+rules <- sort(rules, by='confidence', decreasing = TRUE)
+summary(rules)
+inspect(rules[1:20])
+```
+
+#### 5.2 Data Evaluation - Apriori
+
+###### 5.2.1 Test the Model
+
+```{r, message = FALSE, fig.align='left'}
+topRules <- rules[1:20]
+# Visualising the results
+plot(topRules, method="graph", shading=NA)
+```
+The plot shows top 20 rules of the model
+```{r, message = FALSE, fig.height=8}
+plot(topRules, method = "grouped")
+```
+This plot is grouping the top 20 rules together.
+```{r, message = FALSE}
+plot(topRules, method = "two-key plot")
+plot(topRules, method = "scatterplot")
+plot(topRules, method = "paracoord")
+```
+
+Plot 1 and Plot 2 are just scatterplot for first 20 rules which provides lift vs confidence.
+The Plot 3 above uses apriori model to showcase how products on the lhs are associated with products on the right. The rhs is same as lhs.
+
+
+```{r, message = FALSE}
+
+```
+
+###### 5.2.2 Perform a test prediction
+
+```{r, message = FALSE}
+grocery_item = "Milk"
+rules <- apriori(tr, parameter = list(supp=0.001, conf=0.15), 
+                 appearance = list(default="rhs", lhs=grocery_item), 
+                 control = list (verbose=F))
+rules_conf <- sort (rules, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+result = inspect(head(rules_conf))
+result$rhs
+```
+#### 5.3 Data Modeling - Eclat
+
+```{r, message = FALSE}
+# Training Eclat on the dataset
+eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2))
+eclat_itemsets <- sort(eclat_itemsets, by='count', decreasing = TRUE)
+summary(eclat_itemsets)
+
+inspect(sort(eclat_itemsets, by = 'count')[1:20])
+eclat_topItemSets <- eclat_itemsets[1:20]
+```
+
+#### 5.4 Data Evaluation - Eclat
+
+```{r, message = FALSE, fig.align='left'}
+# Visualising the results of the Eclat Analysis
+plot(eclat_topItemSets, method="graph")
+plot(eclat_topItemSets, method = "scatterplot")
+plot(eclat_topItemSets, method = "paracoord")
+```
+Plot 1 gives graph  for association of products for Plot 1
+Plot 2 are just scatterplot for first 20 rules which provides lift vs confidence.
+The Plot 3 above uses apriori model to showcase how products on the lhs are associated with products on the right. The rhs is same as lhs.
+###### 5.4.1 Perform a test prediction
+When we test our model for prediction we see the following results
+```{r, message = FALSE}
+grocery_item = "Garlic"
+# eclat_itemsets = eclat(tr, parameter = list(support = 0.001, minlen = 2), 
+#                  control = list (verbose=F))
+
+## Create rules from the itemsets
+eclat_rules <- ruleInduction(eclat_itemsets, tr, confidence = .9)
+summary(eclat_rules)
+kable(inspect(eclat_rules[1:20]))
+
+result_eclat <- subset(eclat_rules, subset = lhs %in% "Milk")
+
+rules_conf <- sort (result_eclat, by="confidence", decreasing=TRUE) # 'high-confidence' rules.
+result = inspect(head(rules_conf))
+result$rhs
+```
+
+## 6. Final Model Analysis and Selection
+
+
+#### 6.1 Model Comparison
+
+We have used the following two models to do prediction for the instacart shopping use case.The following Machine Learning Algorithms were used in this analysis:
+  Apriori - This is an algorithm  that is used for market basket modelling. It uses techniques such as association rule learning over datasets along with item set mining. It proceeds by identifying the frequent individual items in the database and extending them to larger and larger item sets as long as those item sets appear sufficiently often in the datsets
+  Eclat - This modelling technique is another one in Association rule mining algorithms. This algorithm does Mining frequent itemsets using the vertical data format. (Eclat) is a method that transforms a given data set of transactions in the horizontal data format of TID-itemset into the vertical data format of item-TID_set. It mines the transformed data set by TID_set intersections based on the Apriori property and additional optimization techniques such as diffset.
+  
+While Using associative rule methodology in apriori, the model predicts for us next product sequence the customer can  potentially purchase. Since it is difficult to understand nuances of the model, The results can be interpreted using Lift, support and confidence. These three terms can be defined as follows:
+
+Support – It is defined as the percentage of transactions that comprise all of the items in a dataset. The more the support value the more frequently the product occurs. High support values are preferred for ample amount of future
+transactions.
+
+Confidence - It is the probability that a transaction that contains the items on the left hand side of the also
+contains the item on the right hand side. The more the confidence value, the greater the likelihood that the
+product on the right hand side will be purchased.
+
+Lift - The formula for Lift is always considered as the ratio of Confidence to Expected Confidence. It is the probability of all of the products in a rule occurring together by the product of the probabilities of the items on the left and right hand side occurring as if there was no association between them.
+
+Source: https://www.lexjansen.com/sesug/2019/SESUG2019_Paper-252_Final_PDF.pdf
+
+
+```{r, message = FALSE}
+
+```
+
+#### 6.3 Selected Model: 
+Based on the apriori associative rule methodology the models we are able to predict the reorder of products, some of the recommendations have been made.The apriori model gives highest lift and confidence and resulting in high amount of accuracy hence we choose Apriori model versus the Eclat Model.
+
+```{r}
+kable(inspect(rules[1:20]))
+```
+
+
+## 7. Deployment
+
+#### 7.1 Shiny App Url: 
+
+https://csml1000-group8.shinyapps.io/Assignment2/
+
+#### 7.2 Summary Explanation
+
+If we at looking at how the company can  benifit from the associative rules for grouping of products together we would be heading towrds at the promotional and marketing departments. It will be highly desirable to run promotional and marketing campaigns with the help of the model for the prediction of the next product. The pomotions can be in such a way that Customers can be provided additional offers or discounts on bundling the
+products together for a lesser price and customize the products based on the association rules.Based on the reordering model the model can ensure that products can be added to the cart automatically based on the customer
+preferences.We would recommend the company to add the items directly to the customer’s shopping cart or to provide as suggestive list when they make their purchase in order to enhance the customer experience. 
+
+- Limitations of our analysis: 
+  - Due to processing and resource limitations we used a random sample of aproximately 10% of the original dataset
+  - The analysis is based on data provided by InstaCart and may inherit any biases that exists in their customer base relative to the general population.
+  
+  
+- Further steps: 
+  - The analysis can be expanded to include all of the original data as well as any other similar sources that may be available. We also wanted to tackle the Ethical framework for the model by adding the exclusion rules along with our association rules. The exclusion rules would allow us to protect actors from buying certain products which would either be underiable, illegal or dangerous for the actors.
+
+- Ethical Framework Questions: 
+  - Can a malicious actor infer information about individuals from your system? No. There is no PII present.
+  - Are you able to identify anomalous activity on your system that might indicate a security breach? This would need to be considered for each specific deployment.
+  - Do you have a plan to monitor for poor performance on individuals or subgroups? N/A since No demographic data is present.
+  - Do you have a plan to log and store historical predictions if a consumer requests access in the future? N/A since No demographic data is present.
+  - Have you documented model retraining cycles and can you confirm that a subject’s data has been removed from models? N/A since No demographic data is present.
+
+## References
+
+Yihui Xie, J. J. Allaire, Garrett Grolemund, 2019, R Markdown: The Definitive Guide
+https://bookdown.org/yihui/rmarkdown/markdown-syntax.html
+
+Jonathan McPherson, 2016, R Notebooks
+https://blog.rstudio.com/2016/10/05/r-notebooks
+
+Adam Kardash, Patricia Kosseim, 2018, Responsible AI in Consumer Enterprise, integrate.ai
+
+Roberto J. Bayardo Jr, Rakesh Agrawal, Proc. of the Fifth ACM SIGKDD Int’l Conf. on Knowledge Discovery and Data Mining, 145-154, 1999. Mining the Most Interesting Rules, https://www.bayardo.org/ps/kdd99.pdf on Feb. 28, 2020
+
+Gopi Subramanian, R Data Analysis Projects, 2017, https://subscription.packtpub.com/book/big_data_and_business_intelligence/9781788621878/1/ch01lvl1sec10/association-rule-mining on Feb. 28, 2020
+
+Aravind Dhanabal,2019, Market Basket Analysis on Instacart
+https://www.lexjansen.com/sesug/2019/SESUG2019_Paper-252_Final_PDF.pdf on Feb. 28, 2020
