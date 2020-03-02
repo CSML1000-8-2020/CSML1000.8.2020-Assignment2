@@ -143,8 +143,8 @@ Let’s look at the most important aisles over all departments, as being sorted 
     
 #### 2.3 Load and check data
  The links to the two big files are as follows:
-order products_train
-https://drive.google.com/open?id=1FB1ElGO7LKx6Ga5IIP7CDvTo_rYYIYeu
+orders
+https://drive.google.com/open?id=1yuLqdtJKRBYs5seavGmjNvNfzh7_bQxs
 order products_prior
 https://drive.google.com/open?id=1uS7Kwwrr4AjzKvwbJSARNxWl1Ql7GRiP
 
@@ -153,8 +153,8 @@ orders = read.csv("./input/orders.csv")
 aisles = read.csv("./input/aisles.csv")
 departments = read.csv("./input/departments.csv")
 products = read.csv("./input/products.csv")
-order_products_prior = read.csv(url("./input/order_products__prior.csv"))
-order_products_train = read.csv(url("./input/order_products__train.csv"))
+order_products_prior = read.csv("./input/order_products__prior.csv")
+order_products_train = read.csv("./input/order_products__train.csv")
 ```
 Here we can check the Data visually by putting kable function around the head of datasets
 ```{r, message = FALSE}
