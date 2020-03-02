@@ -2,15 +2,15 @@
 title: "CSML1000 Winter 2020, Group 8, Assignment2: Market Basket Prediction Model"
 author: "Steven Wang, Tarun Bagga, Paul Doucet, Jerry Khidaroo, Nikola Stevanovic"
 date: "2/15/2020"
-output:
-   html_document:
-   toc: TRUE
-   toc_depth: 2
-#output:
-#  pdf_document:
+# output:
+#    html_document:
 #    toc: TRUE
-#    toc_depth: 3
-#    fig_caption: yes
+#    toc_depth: 2
+output:
+ pdf_document:
+   toc: TRUE
+   toc_depth: 3
+   fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -502,7 +502,7 @@ Source: https://www.lexjansen.com/sesug/2019/SESUG2019_Paper-252_Final_PDF.pdf
 Based on the apriori associative rule methodology the models we are able to predict the reorder of products, some of the recommendations have been made.The apriori model gives highest lift and confidence and resulting in high amount of accuracy hence we choose Apriori model versus the Eclat Model.
 
 ```{r}
-kable(inspect(rules[1:20]))
+#kable(inspect(rules[1:10]))
 ```
 
 
